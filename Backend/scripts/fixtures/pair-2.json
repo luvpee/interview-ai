@@ -1,0 +1,4 @@
+{
+  "jobDescription": "Backend Engineer for a logistics platform. Requirements: Node.js, Express, MongoDB or PostgreSQL, designing REST APIs, authentication/authorization, message queues (Kafka or RabbitMQ), Docker, and writing integration tests.",
+  "resume": "Backend developer with 5 years of Node.js and Express experience. Designed and shipped REST APIs backed by MongoDB, implemented JWT-based authentication, containerized services with Docker, and wrote integration tests with Jest and Supertest. No prior experience with message queues."
+}

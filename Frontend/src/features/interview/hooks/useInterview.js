@@ -1,4 +1,4 @@
-import { getAllInterviewReports, generateInterviewReport, getInterviewReportById, generateResumePdf } from "../services/interview.api"
+import { getAllInterviewReports, generateInterviewReport, getInterviewReportById, generateResumePdf, submitFeedback } from "../services/interview.api"
 import { useContext, useEffect } from "react"
 import { InterviewContext } from "../interview.context"
 import { useParams } from "react-router"
@@ -17,17 +17,32 @@ export const useInterview = () => {
 
     const generateReport = async ({ jobDescription, selfDescription, resumeFile }) => {
         setLoading(true)
-        let response = null
         try {
-            response = await generateInterviewReport({ jobDescription, selfDescription, resumeFile })
+            const response = await generateInterviewReport({ jobDescription, selfDescription, resumeFile })
             setReport(response.interviewReport)
-        } catch (error) {
-            console.log(error)
+            return response.interviewReport
         } finally {
             setLoading(false)
         }
+    }
 
-        return response.interviewReport
+    const submitQuestionFeedback = async ({ interviewId, type, questionIndex, rating }) => {
+        const previousReport = report
+        const updatedFeedback = [ ...(report.feedback || []) ]
+        const existingIndex = updatedFeedback.findIndex(f => f.type === type && f.questionIndex === questionIndex)
+        if (existingIndex > -1) {
+            updatedFeedback[ existingIndex ] = { ...updatedFeedback[ existingIndex ], rating }
+        } else {
+            updatedFeedback.push({ type, questionIndex, rating })
+        }
+        setReport({ ...report, feedback: updatedFeedback })
+
+        try {
+            await submitFeedback({ interviewId, type, questionIndex, rating })
+        } catch (error) {
+            setReport(previousReport)
+            throw error
+        }
     }
 
     const getReportById = async (interviewId) => {
@@ -86,6 +101,6 @@ export const useInterview = () => {
         }
     }, [ interviewId ])
 
-    return { loading, report, reports, generateReport, getReportById, getReports, getResumePdf }
+    return { loading, report, reports, generateReport, getReportById, getReports, getResumePdf, submitQuestionFeedback }
 
 }

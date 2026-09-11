@@ -37,6 +37,20 @@ interviewRouter.get("/", authMiddleware.authUser, interviewController.getAllInte
  */
 interviewRouter.post("/resume/pdf/:interviewReportId", authMiddleware.authUser, interviewController.generateResumePdfController)
 
+/**
+ * @route POST /api/interview/report/:interviewId/feedback
+ * @description submit thumbs up/down feedback for a specific question in an interview report.
+ * @access private
+ */
+interviewRouter.post("/report/:interviewId/feedback", authMiddleware.authUser, interviewController.submitFeedbackController)
+
+/**
+ * @route GET /api/interview/analytics
+ * @description get aggregated analytics (match score trend, top skill gaps) for the logged in user.
+ * @access private
+ */
+interviewRouter.get("/analytics", authMiddleware.authUser, interviewController.getAnalyticsController)
+
 
 
 module.exports = interviewRouter

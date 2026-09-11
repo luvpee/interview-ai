@@ -99,6 +99,35 @@ const preparationPlanSchema = new mongoose.Schema({
   }]
 })
 
+const groundingSectionSchema = new mongoose.Schema({
+  score: { type: Number },
+  flagged: [{ type: String }]
+}, { _id: false })
+
+const feedbackSchema = new mongoose.Schema({
+  type: {
+    type: String,
+    enum: ["technical", "behavioral"],
+    required: true
+  },
+  questionIndex: {
+    type: Number,
+    required: true
+  },
+  questionText: {
+    type: String
+  },
+  rating: {
+    type: String,
+    enum: ["up", "down", null],
+    default: null
+  },
+  timestamp: {
+    type: Date,
+    default: Date.now
+  }
+}, { _id: false })
+
 const interviewReportSchema = new mongoose.Schema({
   jobDescription : {
     type:String,
@@ -119,6 +148,12 @@ const interviewReportSchema = new mongoose.Schema({
   behavioralQuestions: [behavioralQuestionSchema],
   skillGaps: [skillGapSchema],
   preparationPlan: [preparationPlanSchema],
+  grounding: {
+    skillGaps: groundingSectionSchema,
+    technicalQuestions: groundingSectionSchema,
+    behavioralQuestions: groundingSectionSchema
+  },
+  feedback: [feedbackSchema],
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "user"

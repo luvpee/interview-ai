@@ -2,10 +2,32 @@ const { GoogleGenAI } = require("@google/genai")
 const { z } = require("zod")
 const { zodToJsonSchema } = require("zod-to-json-schema")
 const puppeteer = require("puppeteer")
+const AIGenerationError = require("../errors/AIGenerationError")
+const generationLogModel = require("../models/generationLog.model")
 
 const ai = new GoogleGenAI({
     apiKey: process.env.GOOGLE_GENAI_API_KEY
 })
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+async function withRetry(fn, maxAttempts = 3) {
+    let lastError
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+            const result = await fn()
+            return { result, attempts: attempt }
+        } catch (err) {
+            lastError = err
+            if (attempt < maxAttempts) {
+                await sleep(500 * 2 ** (attempt - 1))
+            }
+        }
+    }
+    throw Object.assign(lastError, { attempts: maxAttempts })
+}
 
 
 const interviewReportSchema = z.object({
@@ -32,8 +54,22 @@ const interviewReportSchema = z.object({
     title: z.string().describe("The title of the job for which the interview report is generated"),
 })
 
-async function generateInterviewReport({ resume, selfDescription, jobDescription }) {
+const groundingSchema = z.object({
+    skillGaps: z.object({
+        score: z.number().describe("Confidence score 0-100 that the skill gaps are supported by the resume/JD"),
+        flagged: z.array(z.string()).describe("Skills flagged as not clearly supported by the resume/JD")
+    }),
+    technicalQuestions: z.object({
+        score: z.number().describe("Confidence score 0-100 that the technical questions are grounded in the JD"),
+        flagged: z.array(z.string()).describe("Technical questions flagged as not clearly grounded in the JD")
+    }),
+    behavioralQuestions: z.object({
+        score: z.number().describe("Confidence score 0-100 that the behavioral questions are grounded in the JD"),
+        flagged: z.array(z.string()).describe("Behavioral questions flagged as not clearly grounded in the JD")
+    })
+})
 
+async function generateInterviewReport({ resume, selfDescription, jobDescription, userId }) {
 
     const prompt = `Generate an interview report for a candidate with the following details:
                         Resume: ${resume}
@@ -41,18 +77,78 @@ async function generateInterviewReport({ resume, selfDescription, jobDescription
                         Job Description: ${jobDescription}
 `
 
-    const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: prompt,
-        config: {
-            responseMimeType: "application/json",
-            responseSchema: zodToJsonSchema(interviewReportSchema),
+    let lastRawResponse
+
+    try {
+        const { result, attempts } = await withRetry(async () => {
+            const response = await ai.models.generateContent({
+                model: "gemini-3-flash-preview",
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: zodToJsonSchema(interviewReportSchema),
+                }
+            })
+            lastRawResponse = response.text
+            const parsed = JSON.parse(response.text)
+            return interviewReportSchema.parse(parsed)
+        })
+
+        let grounding
+        try {
+            grounding = await checkGrounding({ jobDescription, resume, report: result })
+        } catch (err) {
+            grounding = undefined
         }
-    })
 
-    return JSON.parse(response.text)
+        await generationLogModel.create({
+            user: userId,
+            prompt,
+            rawResponse: lastRawResponse,
+            validatedOutput: result,
+            status: "success",
+            attempts
+        })
 
+        return { ...result, grounding }
+    } catch (err) {
+        await generationLogModel.create({
+            user: userId,
+            prompt,
+            rawResponse: lastRawResponse,
+            validatedOutput: null,
+            status: "failure",
+            attempts: err.attempts || 3
+        })
+        throw new AIGenerationError("Failed to generate interview report after multiple attempts. Please try again.", { attempts: err.attempts || 3, cause: err })
+    }
+}
 
+async function checkGrounding({ jobDescription, resume, report }) {
+    const prompt = `You are critiquing an AI-generated interview report for factual grounding.
+Job Description: ${jobDescription}
+Resume: ${resume}
+
+Skill Gaps: ${JSON.stringify(report.skillGaps)}
+Technical Questions: ${JSON.stringify(report.technicalQuestions.map(q => q.question))}
+Behavioral Questions: ${JSON.stringify(report.behavioralQuestions.map(q => q.question))}
+
+For each section (skillGaps, technicalQuestions, behavioralQuestions), give a 0-100 confidence score that the content is clearly supported by the Job Description/Resume text, and list any specific items (skill name or exact question text) that are NOT clearly supported.`
+
+    const { result } = await withRetry(async () => {
+        const response = await ai.models.generateContent({
+            model: "gemini-3-flash-preview",
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: zodToJsonSchema(groundingSchema),
+            }
+        })
+        const parsed = JSON.parse(response.text)
+        return groundingSchema.parse(parsed)
+    }, 2)
+
+    return result
 }
 
 
@@ -113,4 +209,4 @@ async function generateResumePdf({ resume, selfDescription, jobDescription }) {
 
 }
 
-module.exports = { generateInterviewReport, generateResumePdf }
+module.exports = { generateInterviewReport, generateResumePdf, interviewReportSchema }

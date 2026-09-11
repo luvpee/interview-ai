@@ -157,6 +157,50 @@ $severity-low: #3fb950;
     }
 }
 
+// ── Grounding / Feedback ────────────────────────────────────────────────────────
+.confidence-badge {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #3fb950;
+    background-color: rgba(#3fb950, 0.1);
+    border: 1px solid rgba(#3fb950, 0.25);
+    padding: 0.1rem 0.5rem;
+    border-radius: 2rem;
+    margin-left: 0.5rem;
+}
+
+.q-card__flag {
+    flex-shrink: 0;
+    color: $severity-medium;
+    cursor: help;
+}
+
+.q-card__feedback {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0 1rem 0.9rem;
+}
+
+.feedback-btn {
+    background-color: $bg-card;
+    border: 1px solid $border-color;
+    border-radius: 0.4rem;
+    padding: 0.2rem 0.6rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+    opacity: 0.6;
+    transition: opacity 0.2s, border-color 0.2s;
+
+    &:hover {
+        opacity: 1;
+    }
+
+    &--active {
+        opacity: 1;
+        border-color: $accent;
+    }
+}
+
 // ── Question Cards ────────────────────────────────────────────────────────────
 .q-list {
     display: flex;

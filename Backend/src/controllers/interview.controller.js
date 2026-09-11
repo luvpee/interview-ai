@@ -1,6 +1,7 @@
 const pdfParse = require("pdf-parse")
 const { generateInterviewReport, generateResumePdf } = require("../services/ai.service")
 const interviewReportModel = require("../models/interviewReport.model")
+const AIGenerationError = require("../errors/AIGenerationError")
 
 
 
@@ -10,27 +11,35 @@ const interviewReportModel = require("../models/interviewReport.model")
  */
 async function generateInterViewReportController(req, res) {
 
-    const resumeContent = await (new pdfParse.PDFParse(Uint8Array.from(req.file.buffer))).getText()
-    const { selfDescription, jobDescription } = req.body
+    try {
+        const resumeContent = await (new pdfParse.PDFParse(Uint8Array.from(req.file.buffer))).getText()
+        const { selfDescription, jobDescription } = req.body
 
-    const interViewReportByAi = await generateInterviewReport({
-        resume: resumeContent.text,
-        selfDescription,
-        jobDescription
-    })
+        const interViewReportByAi = await generateInterviewReport({
+            resume: resumeContent.text,
+            selfDescription,
+            jobDescription,
+            userId: req.user.id
+        })
 
-    const interviewReport = await interviewReportModel.create({
-        user: req.user.id,
-        resume: resumeContent.text,
-        selfDescription,
-        jobDescription,
-        ...interViewReportByAi
-    })
+        const interviewReport = await interviewReportModel.create({
+            user: req.user.id,
+            resume: resumeContent.text,
+            selfDescription,
+            jobDescription,
+            ...interViewReportByAi
+        })
 
-    res.status(201).json({
-        message: "Interview report generated successfully.",
-        interviewReport
-    })
+        res.status(201).json({
+            message: "Interview report generated successfully.",
+            interviewReport
+        })
+    } catch (err) {
+        if (err instanceof AIGenerationError) {
+            return res.status(err.statusCode).json({ message: err.message })
+        }
+        res.status(500).json({ message: "Something went wrong while generating the interview report. Please try again." })
+    }
 
 }
 
@@ -95,4 +104,77 @@ async function generateResumePdfController(req, res) {
     res.send(pdfBuffer)
 }
 
-module.exports = { generateInterViewReportController, getInterviewReportByIdController, getAllInterviewReportsController, generateResumePdfController }
+/**
+ * @description Controller to submit thumbs up/down feedback for a specific question in an interview report.
+ */
+async function submitFeedbackController(req, res) {
+    const { interviewId } = req.params
+    const { type, questionIndex, rating } = req.body
+
+    if (!["technical", "behavioral"].includes(type) || typeof questionIndex !== "number" || ![ "up", "down", null ].includes(rating)) {
+        return res.status(400).json({ message: "Invalid feedback payload." })
+    }
+
+    const interviewReport = await interviewReportModel.findOne({ _id: interviewId, user: req.user.id })
+
+    if (!interviewReport) {
+        return res.status(404).json({ message: "Interview report not found." })
+    }
+
+    const questionsArr = type === "technical" ? interviewReport.technicalQuestions : interviewReport.behavioralQuestions
+    const question = questionsArr[ questionIndex ]
+
+    if (!question) {
+        return res.status(400).json({ message: "Question not found." })
+    }
+
+    const existing = interviewReport.feedback.find(f => f.type === type && f.questionIndex === questionIndex)
+
+    if (existing) {
+        existing.rating = rating
+        existing.timestamp = new Date()
+    } else {
+        interviewReport.feedback.push({
+            type,
+            questionIndex,
+            questionText: question.question,
+            rating,
+            timestamp: new Date()
+        })
+    }
+
+    await interviewReport.save()
+
+    res.status(200).json({
+        message: "Feedback recorded successfully.",
+        feedback: interviewReport.feedback
+    })
+}
+
+/**
+ * @description Controller to get aggregated analytics (match score trend, top skill gaps) for the logged in user's reports.
+ */
+async function getAnalyticsController(req, res) {
+    const reports = await interviewReportModel.find({ user: req.user.id }).select("matchScore skillGaps createdAt").sort({ createdAt: 1 })
+
+    const matchScoreTrend = reports.map(r => ({ date: r.createdAt, matchScore: r.matchScore }))
+
+    const skillGapCounts = {}
+    reports.forEach(r => {
+        r.skillGaps.forEach(g => {
+            skillGapCounts[ g.skill ] = (skillGapCounts[ g.skill ] || 0) + 1
+        })
+    })
+    const topSkillGaps = Object.entries(skillGapCounts)
+        .sort((a, b) => b[ 1 ] - a[ 1 ])
+        .slice(0, 10)
+        .map(([ skill, count ]) => ({ skill, count }))
+
+    res.status(200).json({
+        message: "Analytics fetched successfully.",
+        matchScoreTrend,
+        topSkillGaps
+    })
+}
+
+module.exports = { generateInterViewReportController, getInterviewReportByIdController, getAllInterviewReportsController, generateResumePdfController, submitFeedbackController, getAnalyticsController }

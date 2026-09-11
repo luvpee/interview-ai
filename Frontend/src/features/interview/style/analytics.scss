@@ -1,0 +1,125 @@
+$bg-page: #0d1117;
+$bg-panel: #1c2230;
+$border-color: #2a3348;
+$text-primary: #e6edf3;
+$text-muted: #7d8590;
+$accent: #ff2d78;
+
+.analytics-page {
+    width: 100%;
+    min-height: 100vh;
+    background-color: $bg-page;
+    color: $text-primary;
+    padding: 2rem;
+    box-sizing: border-box;
+}
+
+.analytics-header {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+
+    h1 {
+        margin: 0;
+        font-size: 1.4rem;
+    }
+
+    a {
+        color: $text-muted;
+        font-size: 0.85rem;
+        text-decoration: none;
+
+        &:hover {
+            color: $text-primary;
+        }
+    }
+}
+
+.analytics-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    max-width: 640px;
+}
+
+.analytics-card {
+    background-color: $bg-panel;
+    border: 1px solid $border-color;
+    border-radius: 0.6rem;
+    padding: 1.25rem;
+
+    h2 {
+        margin: 0 0 1rem;
+        font-size: 1rem;
+    }
+}
+
+.analytics-empty {
+    color: $text-muted;
+    font-size: 0.9rem;
+}
+
+.trend-chart {
+    width: 100%;
+    height: auto;
+
+    &__axis {
+        stroke: $border-color;
+        stroke-width: 1;
+    }
+
+    &__line {
+        stroke: $accent;
+        stroke-width: 2;
+    }
+
+    &__dot {
+        fill: $accent;
+    }
+}
+
+.skill-gap-bars {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+
+    li {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    &__label {
+        width: 120px;
+        flex-shrink: 0;
+        font-size: 0.85rem;
+        color: $text-primary;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    &__track {
+        flex: 1;
+        height: 8px;
+        background-color: $bg-page;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    &__fill {
+        height: 100%;
+        background-color: $accent;
+    }
+
+    &__count {
+        width: 24px;
+        text-align: right;
+        font-size: 0.8rem;
+        color: $text-muted;
+    }
+}

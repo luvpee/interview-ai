@@ -1,0 +1,4 @@
+{
+  "jobDescription": "DevOps Engineer for a SaaS company. Requirements: AWS (EC2, S3, RDS), Terraform, CI/CD pipelines (GitHub Actions or Jenkins), Kubernetes, monitoring/observability (Prometheus, Grafana), and scripting in Bash or Python.",
+  "resume": "Systems administrator turned DevOps engineer with 3 years managing AWS infrastructure (EC2, S3), writing Terraform modules, and building CI/CD pipelines with GitHub Actions. Basic Kubernetes exposure from a training course, no production experience with Prometheus or Grafana."
+}

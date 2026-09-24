@@ -303,4 +303,4 @@ async function generateResumePdf({ resume, selfDescription, jobDescription }) {
     return pdfBuffer
 }
 
-module.exports = { generateInterviewReport, generateResumePdf, interviewReportSchema, toGeminiSchema }
+module.exports = { generateInterviewReport, generateResumePdf, checkGrounding, withRetry, interviewReportSchema, toGeminiSchema }

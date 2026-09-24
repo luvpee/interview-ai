@@ -41,7 +41,11 @@ const token = jwt.sign(
   }
 )
 
-res.cookie("token", token);
+res.cookie("token", token, {
+  httpOnly: true,
+  sameSite: "lax",
+  secure: process.env.NODE_ENV === "production"
+});
 
 /* code 201 used when we have to send some resource with the response */
 
@@ -81,7 +85,11 @@ async function loginUserController(req,res){
     {expiresIn: "1d"}
   );
 
-  res.cookie("token", token)
+  res.cookie("token", token, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production"
+  })
   res.status(200).json({
     message:"User loggedIn successfully.",
     user:{

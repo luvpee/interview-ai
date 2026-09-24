@@ -12,9 +12,11 @@ const api = axios.create({
 export const generateInterviewReport = async ({ jobDescription, selfDescription, resumeFile }) => {
 
     const formData = new FormData()
-    formData.append("jobDescription", jobDescription)
-    formData.append("selfDescription", selfDescription)
-    formData.append("resume", resumeFile)
+    formData.append("jobDescription", jobDescription || "")
+    formData.append("selfDescription", selfDescription || "")
+    if (resumeFile) {
+        formData.append("resume", resumeFile)
+    }
 
     const response = await api.post("/api/interview/", formData, {
         headers: {
@@ -51,11 +53,26 @@ export const getAllInterviewReports = async () => {
  * @description Service to generate resume pdf based on user self description, resume content and job description.
  */
 export const generateResumePdf = async ({ interviewReportId }) => {
-    const response = await api.post(`/api/interview/resume/pdf/${interviewReportId}`, null, {
-        responseType: "blob"
-    })
+    try {
+        const response = await api.post(`/api/interview/resume/pdf/${interviewReportId}`, null, {
+            responseType: "blob"
+        })
 
-    return response.data
+        return response.data
+    } catch (err) {
+        if (err.response?.data instanceof Blob) {
+            try {
+                const text = await err.response.data.text()
+                const json = JSON.parse(text)
+                if (json.message) {
+                    err.message = json.message
+                }
+            } catch {
+                // fall through
+            }
+        }
+        throw err
+    }
 }
 
 

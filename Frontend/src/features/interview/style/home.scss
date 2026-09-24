@@ -184,7 +184,13 @@ $font-stack:     system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Robot
     }
 }
 
-// ── Section Label ─────────────────────────────────────────────────────────────
+// ── Section Label & Status ───────────────────────────────────────────────────
+.section-label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
 .section-label {
     display: flex;
     align-items: center;
@@ -193,6 +199,26 @@ $font-stack:     system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Robot
     font-weight: 500;
     color: $text-primary;
     margin-bottom: 0.25rem;
+}
+
+.badge-file-ready {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #3fb950;
+    background-color: rgba(#3fb950, 0.15);
+    border: 1px solid rgba(#3fb950, 0.35);
+    padding: 0.15rem 0.5rem;
+    border-radius: 0.3rem;
+}
+
+.file-error-msg {
+    font-size: 0.78rem;
+    color: #ff6b6b;
+    background: rgba(255, 107, 107, 0.1);
+    border: 1px solid rgba(255, 107, 107, 0.25);
+    border-radius: 0.35rem;
+    padding: 0.35rem 0.6rem;
+    margin: 0;
 }
 
 // ── Dropzone ──────────────────────────────────────────────────────────────────
@@ -220,6 +246,24 @@ $font-stack:     system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Robot
         background-color: rgba($accent, 0.05);
     }
 
+    &--dragging {
+        border-color: $accent;
+        background-color: rgba($accent, 0.12);
+        transform: scale(1.01);
+    }
+
+    &--has-file {
+        border-style: solid;
+        border-color: rgba(#3fb950, 0.5);
+        background-color: rgba(#3fb950, 0.04);
+        padding: 1rem;
+
+        &:hover {
+            border-color: #3fb950;
+            background-color: rgba(#3fb950, 0.07);
+        }
+    }
+
     &__icon {
         color: $accent;
         margin-bottom: 0.25rem;
@@ -236,6 +280,84 @@ $font-stack:     system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Robot
         font-size: 0.75rem;
         color: $text-muted;
         margin: 0;
+    }
+}
+
+// ── File Preview Card ─────────────────────────────────────────────────────────
+.file-preview {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    width: 100%;
+
+    &__icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        background-color: rgba($accent, 0.1);
+        border: 1px solid rgba($accent, 0.2);
+        border-radius: 0.5rem;
+        flex-shrink: 0;
+    }
+
+    &__info {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+    }
+
+    &__header {
+        display: flex;
+        align-items: baseline;
+        gap: 0.5rem;
+        min-width: 0;
+    }
+
+    &__name {
+        margin: 0;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: $text-primary;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 170px;
+    }
+
+    &__size {
+        font-size: 0.72rem;
+        color: $text-muted;
+        flex-shrink: 0;
+    }
+
+    &__status {
+        margin: 0;
+        font-size: 0.74rem;
+        color: #3fb950;
+        font-weight: 500;
+    }
+
+    &__remove-btn {
+        background: rgba(255, 107, 107, 0.1);
+        border: 1px solid rgba(255, 107, 107, 0.25);
+        color: #ff6b6b;
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 0.35rem 0.65rem;
+        border-radius: 0.4rem;
+        cursor: pointer;
+        flex-shrink: 0;
+        transition: all 0.2s;
+
+        &:hover {
+            background: rgba(255, 107, 107, 0.25);
+            color: #ffffff;
+            border-color: #ff6b6b;
+        }
     }
 }
 

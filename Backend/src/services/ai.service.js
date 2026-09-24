@@ -1,6 +1,5 @@
 const { GoogleGenAI } = require("@google/genai")
 const { z } = require("zod")
-const { zodToJsonSchema } = require("zod-to-json-schema")
 const puppeteer = require("puppeteer")
 const AIGenerationError = require("../errors/AIGenerationError")
 const generationLogModel = require("../models/generationLog.model")
@@ -8,6 +7,26 @@ const generationLogModel = require("../models/generationLog.model")
 const ai = new GoogleGenAI({
     apiKey: process.env.GOOGLE_GENAI_API_KEY
 })
+
+/**
+ * Convert a Zod schema to a JSON Schema compatible with Gemini's responseSchema.
+ * Strips '$schema' and 'additionalProperties' keys that Gemini doesn't support.
+ */
+function toGeminiSchema(zodSchema) {
+    const jsonSchema = z.toJSONSchema(zodSchema)
+    const clone = JSON.parse(JSON.stringify(jsonSchema))
+    delete clone["$schema"]
+    function removeAdditionalProperties(obj) {
+        if (obj && typeof obj === "object") {
+            delete obj.additionalProperties
+            for (const val of Object.values(obj)) {
+                removeAdditionalProperties(val)
+            }
+        }
+    }
+    removeAdditionalProperties(clone)
+    return clone
+}
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms))
@@ -22,7 +41,7 @@ async function withRetry(fn, maxAttempts = 3) {
         } catch (err) {
             lastError = err
             if (attempt < maxAttempts) {
-                await sleep(500 * 2 ** (attempt - 1))
+                await sleep(1000 * 2 ** (attempt - 1))
             }
         }
     }
@@ -71,27 +90,58 @@ const groundingSchema = z.object({
 
 async function generateInterviewReport({ resume, selfDescription, jobDescription, userId }) {
 
-    const prompt = `Generate an interview report for a candidate with the following details:
-                        Resume: ${resume}
-                        Self Description: ${selfDescription}
-                        Job Description: ${jobDescription}
-`
+    const prompt = `You are an expert Technical Recruiter and Interview Coach. Generate a comprehensive, highly tailored interview preparation report.
+
+    CANDIDATE DETAILS:
+    - Resume: ${resume || "Not provided directly"}
+    - Self Description: ${selfDescription || "Not provided"}
+
+    JOB DETAILS:
+    - Job Description: ${jobDescription}
+
+    INSTRUCTIONS:
+    1. Analyze the gap between the candidate's profile and the job requirements.
+    2. Generate realistic technical and behavioral questions based on the specific JD and the candidate's experience.
+    3. Create a practical, day-by-day preparation plan.
+    4. Ensure the output strictly follows the provided JSON schema.
+    `
 
     let lastRawResponse
 
     try {
         const { result, attempts } = await withRetry(async () => {
-            const response = await ai.models.generateContent({
-                model: "gemini-3-flash-preview",
-                contents: prompt,
-                config: {
-                    responseMimeType: "application/json",
-                    responseSchema: zodToJsonSchema(interviewReportSchema),
-                }
-            })
-            lastRawResponse = response.text
-            const parsed = JSON.parse(response.text)
-            return interviewReportSchema.parse(parsed)
+            let response
+            try {
+                response = await ai.models.generateContent({
+                    model: "gemini-3.6-flash",
+                    contents: prompt,
+                    config: {
+                        responseMimeType: "application/json",
+                        responseSchema: toGeminiSchema(interviewReportSchema),
+                    }
+                })
+            } catch (apiErr) {
+                console.warn("Primary model gemini-3.6-flash failed, trying fallback gemini-3-flash-preview...", apiErr?.message)
+                response = await ai.models.generateContent({
+                    model: "gemini-3-flash-preview",
+                    contents: prompt,
+                    config: {
+                        responseMimeType: "application/json",
+                        responseSchema: toGeminiSchema(interviewReportSchema),
+                    }
+                })
+            }
+
+            const responseText = response.text || (response.candidates && response.candidates[0]?.content?.parts[0]?.text);
+            lastRawResponse = responseText;
+
+            if (!responseText) {
+                throw new Error("AI returned an empty response");
+            }
+
+            const cleaned = responseText.replace(/^```json\s*/i, "").replace(/```\s*$/i, "").trim()
+            const parsed = JSON.parse(cleaned);
+            return interviewReportSchema.parse(parsed);
         })
 
         let grounding
@@ -127,7 +177,7 @@ async function generateInterviewReport({ resume, selfDescription, jobDescription
 async function checkGrounding({ jobDescription, resume, report }) {
     const prompt = `You are critiquing an AI-generated interview report for factual grounding.
 Job Description: ${jobDescription}
-Resume: ${resume}
+Resume: ${resume || "Not provided"}
 
 Skill Gaps: ${JSON.stringify(report.skillGaps)}
 Technical Questions: ${JSON.stringify(report.technicalQuestions.map(q => q.question))}
@@ -136,16 +186,32 @@ Behavioral Questions: ${JSON.stringify(report.behavioralQuestions.map(q => q.que
 For each section (skillGaps, technicalQuestions, behavioralQuestions), give a 0-100 confidence score that the content is clearly supported by the Job Description/Resume text, and list any specific items (skill name or exact question text) that are NOT clearly supported.`
 
     const { result } = await withRetry(async () => {
-        const response = await ai.models.generateContent({
-            model: "gemini-3-flash-preview",
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: zodToJsonSchema(groundingSchema),
-            }
-        })
-        const parsed = JSON.parse(response.text)
-        return groundingSchema.parse(parsed)
+        let response
+        try {
+            response = await ai.models.generateContent({
+                model: "gemini-3.6-flash",
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: toGeminiSchema(groundingSchema),
+                }
+            })
+        } catch {
+            response = await ai.models.generateContent({
+                model: "gemini-3-flash-preview",
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: toGeminiSchema(groundingSchema),
+                }
+            })
+        }
+
+        const responseText = response.text || (response.candidates && response.candidates[0]?.content?.parts[0]?.text);
+        if (!responseText) throw new Error("AI returned an empty response");
+        const cleaned = responseText.replace(/^```json\s*/i, "").replace(/```\s*$/i, "").trim()
+        const parsed = JSON.parse(cleaned);
+        return groundingSchema.parse(parsed);
     }, 2)
 
     return result
@@ -154,59 +220,87 @@ For each section (skillGaps, technicalQuestions, behavioralQuestions), give a 0-
 
 
 async function generatePdfFromHtml(htmlContent) {
-    const browser = await puppeteer.launch()
-    const page = await browser.newPage();
-    await page.setContent(htmlContent, { waitUntil: "networkidle0" })
-
-    const pdfBuffer = await page.pdf({
-        format: "A4", margin: {
-            top: "20mm",
-            bottom: "20mm",
-            left: "15mm",
-            right: "15mm"
-        }
+    const browser = await puppeteer.launch({
+        headless: true,
+        args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"]
     })
+    try {
+        const page = await browser.newPage();
+        await page.setContent(htmlContent, { waitUntil: "networkidle0", timeout: 30000 })
 
-    await browser.close()
+        const pdfBuffer = await page.pdf({
+            format: "A4",
+            printBackground: true,
+            margin: {
+                top: "15mm",
+                bottom: "15mm",
+                left: "15mm",
+                right: "15mm"
+            }
+        })
 
-    return pdfBuffer
+        return pdfBuffer
+    } finally {
+        await browser.close()
+    }
 }
 
 async function generateResumePdf({ resume, selfDescription, jobDescription }) {
 
     const resumePdfSchema = z.object({
-        html: z.string().describe("The HTML content of the resume which can be converted to PDF using any library like puppeteer")
+        html: z.string().describe("The complete HTML content of the resume with modern embedded CSS styling in <style>, optimized for printing to A4 PDF")
     })
 
-    const prompt = `Generate resume for a candidate with the following details:
-                        Resume: ${resume}
-                        Self Description: ${selfDescription}
-                        Job Description: ${jobDescription}
+    const prompt = `You are an expert Executive Resume Writer. Generate a comprehensive, professional resume in HTML for a candidate with the following details:
 
-                        the response should be a JSON object with a single field "html" which contains the HTML content of the resume which can be converted to PDF using any library like puppeteer.
-                        The resume should be tailored for the given job description and should highlight the candidate's strengths and relevant experience. The HTML content should be well-formatted and structured, making it easy to read and visually appealing.
-                        The content of resume should be not sound like it's generated by AI and should be as close as possible to a real human-written resume.
-                        you can highlight the content using some colors or different font styles but the overall design should be simple and professional.
-                        The content should be ATS friendly, i.e. it should be easily parsable by ATS systems without losing important information.
-                        The resume should not be so lengthy, it should ideally be 1-2 pages long when converted to PDF. Focus on quality rather than quantity and make sure to include all the relevant information that can increase the candidate's chances of getting an interview call for the given job description.
-                    `
+    Candidate Resume / Notes: ${resume || "Not provided directly. Use the candidate self description and job requirements to craft their profile."}
+    Candidate Self Description: ${selfDescription || "Not provided"}
+    Target Job Description: ${jobDescription || "Not provided"}
 
-    const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: prompt,
-        config: {
-            responseMimeType: "application/json",
-            responseSchema: zodToJsonSchema(resumePdfSchema),
+    INSTRUCTIONS:
+    1. Respond with a JSON object strictly having a single field "html".
+    2. The "html" field must be a complete, well-structured HTML document with <!DOCTYPE html><html><head><style>...</style></head><body>...</body></html>.
+    3. Include professional resume sections: Header (Name, Title, Contact Info), Professional Summary, Core Competencies/Skills, Professional Experience (with bullet points highlighting achievements), Projects, and Education.
+    4. Style it with clean, modern CSS: elegant typography (system fonts/Arial/Helvetica), high-contrast text, clear section dividers, clean spacing.
+    5. The resume should be tailored to the target job description to maximize ATS score and recruiter appeal.
+    6. Ensure the layout fits cleanly across 1 to 2 pages when printed to A4.
+    7. Do NOT include markdown code fences or backticks inside the html field.
+    `
+
+    const { result } = await withRetry(async () => {
+        let response
+        try {
+            response = await ai.models.generateContent({
+                model: "gemini-3.6-flash",
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: toGeminiSchema(resumePdfSchema),
+                }
+            })
+        } catch (apiErr) {
+            console.warn("Primary model failed in generateResumePdf, attempting fallback gemini-3-flash-preview...", apiErr?.message)
+            response = await ai.models.generateContent({
+                model: "gemini-3-flash-preview",
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: toGeminiSchema(resumePdfSchema),
+                }
+            })
         }
-    })
 
+        const responseText = response.text || (response.candidates && response.candidates[0]?.content?.parts[0]?.text)
+        if (!responseText) throw new Error("Empty response from AI for resume generation")
 
-    const jsonContent = JSON.parse(response.text)
+        const cleaned = responseText.replace(/^```json\s*/i, "").replace(/```\s*$/i, "").trim()
+        const parsed = JSON.parse(cleaned)
+        if (!parsed.html) throw new Error("Resume HTML content is missing from AI response")
+        return parsed
+    }, 3)
 
-    const pdfBuffer = await generatePdfFromHtml(jsonContent.html)
-
+    const pdfBuffer = await generatePdfFromHtml(result.html)
     return pdfBuffer
-
 }
 
-module.exports = { generateInterviewReport, generateResumePdf, interviewReportSchema }
+module.exports = { generateInterviewReport, generateResumePdf, interviewReportSchema, toGeminiSchema }

@@ -1,0 +1,481 @@
+// ── Variables & Palette (mirrors home.scss / interview.scss) ──────────────────
+$bg-page:        #0d1117;
+$bg-card:        #161b22;
+$bg-panel:       #1c2230;
+$bg-input:       #1e2535;
+$border-color:   #2a3348;
+$text-primary:   #e6edf3;
+$text-muted:     #7d8590;
+$accent:         #ff2d78;
+$accent-glow:    rgba(255, 45, 120, 0.35);
+$accent-dim:     rgba(255, 45, 120, 0.12);
+$success:        #3fb950;
+$font-stack:     system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+// ── Screen Container ─────────────────────────────────────────────────────────
+.loading-screen-container {
+    width: 100%;
+    min-height: 100vh;
+    background-color: $bg-page;
+    background-image: 
+        radial-gradient(circle at 50% 20%, rgba(255, 45, 120, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(45, 120, 255, 0.04) 0%, transparent 40%);
+    color: $text-primary;
+    font-family: $font-stack;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1.5rem;
+    box-sizing: border-box;
+
+    &--quick {
+        min-height: 60vh;
+    }
+}
+
+// ── Main Card ────────────────────────────────────────────────────────────────
+.loading-card {
+    width: 100%;
+    max-width: 680px;
+    background-color: $bg-card;
+    border: 1px solid $border-color;
+    border-radius: 1.25rem;
+    padding: 2.5rem 2.25rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.75rem;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45), 0 0 1px 1px rgba(255, 255, 255, 0.05);
+    position: relative;
+    overflow: hidden;
+
+    &--quick {
+        max-width: 440px;
+        padding: 3rem 2rem;
+        text-align: center;
+        gap: 1.25rem;
+
+        h2 {
+            font-size: 1.25rem;
+            margin: 0;
+            color: $text-primary;
+        }
+
+        p {
+            font-size: 0.875rem;
+            color: $text-muted;
+            margin: 0;
+        }
+    }
+}
+
+// ── Animated AI Core / Orb ───────────────────────────────────────────────────
+.orb-container {
+    position: relative;
+    width: 90px;
+    height: 90px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &--small {
+        width: 64px;
+        height: 64px;
+    }
+}
+
+.orb-ring {
+    position: absolute;
+    border-radius: 50%;
+    border: 1.5px dashed;
+
+    &--outer {
+        width: 100%;
+        height: 100%;
+        border-color: rgba($accent, 0.35);
+        animation: rotateCW 12s linear infinite;
+    }
+
+    &--mid {
+        width: 78%;
+        height: 78%;
+        border-color: rgba(#4a90e2, 0.35);
+        border-style: dotted;
+        animation: rotateCCW 8s linear infinite;
+    }
+}
+
+.orb-pulse {
+    position: absolute;
+    width: 60%;
+    height: 60%;
+    border-radius: 50%;
+    background: radial-gradient(circle, $accent-glow 0%, transparent 70%);
+    animation: orbPulse 2.4s ease-in-out infinite;
+}
+
+.orb-core {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #1c2230, #161b22);
+    border: 1px solid rgba($accent, 0.4);
+    box-shadow: 0 0 20px $accent-glow;
+    color: $accent;
+
+    svg {
+        animation: subtlePulse 3s ease-in-out infinite;
+    }
+}
+
+// ── Header & Badges ──────────────────────────────────────────────────────────
+.loading-header {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.stage-badge-row {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    margin-bottom: 0.25rem;
+}
+
+.stage-live-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: $accent;
+    background-color: $accent-dim;
+    border: 1px solid rgba($accent, 0.3);
+    padding: 0.2rem 0.65rem;
+    border-radius: 2rem;
+
+    .live-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background-color: $accent;
+        animation: liveBlink 1.4s ease-in-out infinite;
+    }
+}
+
+.elapsed-badge {
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: $text-muted;
+    background-color: rgba($bg-input, 0.8);
+    border: 1px solid $border-color;
+    padding: 0.2rem 0.55rem;
+    border-radius: 2rem;
+}
+
+.loading-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: $text-primary;
+    margin: 0;
+
+    .highlight {
+        color: $accent;
+    }
+}
+
+.loading-subtitle {
+    font-size: 0.875rem;
+    color: $text-muted;
+    max-width: 480px;
+    margin: 0 auto;
+    line-height: 1.5;
+}
+
+// ── Progress Bar ─────────────────────────────────────────────────────────────
+.progress-wrapper {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.progress-bar-container {
+    width: 100%;
+    height: 8px;
+    background-color: $bg-input;
+    border-radius: 1rem;
+    overflow: hidden;
+    border: 1px solid rgba($border-color, 0.6);
+    position: relative;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, $accent 0%, #ff6b9d 50%, #4a90e2 100%);
+    background-size: 200% 100%;
+    border-radius: 1rem;
+    transition: width 0.3s ease;
+    animation: gradientShift 2s linear infinite;
+    box-shadow: 0 0 10px $accent-glow;
+}
+
+.progress-labels {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: $text-muted;
+
+    .progress-percent {
+        font-weight: 600;
+        color: $accent;
+    }
+}
+
+// ── Active Stage Card ────────────────────────────────────────────────────────
+.active-stage-card {
+    width: 100%;
+    background-color: $bg-panel;
+    border: 1px solid rgba($accent, 0.25);
+    border-radius: 0.75rem;
+    padding: 1rem 1.25rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    box-shadow: inset 0 0 20px rgba($accent, 0.03);
+
+    .active-stage-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        background-color: $accent-dim;
+        border: 1px solid rgba($accent, 0.3);
+        border-radius: 0.5rem;
+        flex-shrink: 0;
+        margin-top: 2px;
+    }
+
+    .active-stage-text {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+
+        h3 {
+            font-size: 0.925rem;
+            font-weight: 600;
+            color: $text-primary;
+            margin: 0;
+            animation: fadeIn 0.4s ease;
+        }
+
+        p {
+            font-size: 0.8rem;
+            color: lighten($text-muted, 10%);
+            margin: 0;
+            line-height: 1.45;
+            animation: fadeIn 0.4s ease;
+        }
+    }
+}
+
+// ── Pipeline Steps Checklist ─────────────────────────────────────────────────
+.pipeline-steps {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 0.25rem;
+    padding: 0 0.5rem;
+    position: relative;
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: 14px;
+        left: 2rem;
+        right: 2rem;
+        height: 2px;
+        background-color: $border-color;
+        z-index: 1;
+    }
+}
+
+.pipeline-step {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    flex: 1;
+
+    .step-dot {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background-color: $bg-card;
+        border: 2px solid $border-color;
+        color: $text-muted;
+        font-size: 0.72rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+    }
+
+    .step-name {
+        font-size: 0.68rem;
+        color: $text-muted;
+        white-space: nowrap;
+        text-align: center;
+        transition: color 0.3s ease;
+    }
+
+    &--done {
+        .step-dot {
+            background-color: $success;
+            border-color: $success;
+            color: #ffffff;
+            box-shadow: 0 0 10px rgba($success, 0.4);
+        }
+
+        .step-name {
+            color: $success;
+            font-weight: 500;
+        }
+    }
+
+    &--current {
+        .step-dot {
+            background-color: $accent;
+            border-color: $accent;
+            color: #ffffff;
+            box-shadow: 0 0 12px $accent-glow;
+            animation: currentPulse 1.6s ease-in-out infinite;
+        }
+
+        .step-name {
+            color: $accent;
+            font-weight: 600;
+        }
+    }
+}
+
+// ── Interview Tips Ticker ────────────────────────────────────────────────────
+.tip-container {
+    width: 100%;
+    background-color: rgba($bg-input, 0.6);
+    border: 1px solid rgba($border-color, 0.8);
+    border-radius: 0.6rem;
+    padding: 0.65rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+
+    .tip-icon {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+    }
+
+    .tip-text {
+        font-size: 0.78rem;
+        color: lighten($text-muted, 12%);
+        margin: 0;
+        line-height: 1.4;
+        animation: tipSlide 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+}
+
+// ── Animations ───────────────────────────────────────────────────────────────
+@keyframes rotateCW {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@keyframes rotateCCW {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(-360deg); }
+}
+
+@keyframes orbPulse {
+    0%, 100% {
+        transform: scale(0.9);
+        opacity: 0.5;
+    }
+    50% {
+        transform: scale(1.3);
+        opacity: 0.9;
+    }
+}
+
+@keyframes subtlePulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.08);
+    }
+}
+
+@keyframes liveBlink {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.35;
+        transform: scale(0.85);
+    }
+}
+
+@keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+@keyframes currentPulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.12);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(3px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes tipSlide {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

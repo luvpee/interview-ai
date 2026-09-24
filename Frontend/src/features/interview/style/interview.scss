@@ -521,3 +521,72 @@ $severity-low: #3fb950;
         border-color: rgba($severity-low, 0.25);
     }
 }
+
+// ── Download Resume Button & States ───────────────────────────────────────────
+.download-resume-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: auto;
+    padding-top: 1rem;
+}
+
+.download-resume-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0.75rem 1rem;
+    border-radius: 0.6rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    .download-btn-content {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    &--loading {
+        opacity: 0.8;
+        cursor: not-allowed;
+        background: linear-gradient(135deg, #a01040, #600824) !important;
+    }
+
+    &--success {
+        background-color: #238636 !important;
+        border-color: #2ea043 !important;
+        color: #ffffff !important;
+    }
+}
+
+.download-error-text {
+    font-size: 0.75rem;
+    color: #ff6b6b;
+    background: rgba(255, 107, 107, 0.1);
+    border: 1px solid rgba(255, 107, 107, 0.3);
+    border-radius: 0.35rem;
+    padding: 0.4rem 0.6rem;
+    margin: 0;
+    line-height: 1.4;
+    text-align: center;
+}
+
+.btn-spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #ffffff;
+    border-radius: 50%;
+    animation: btnSpin 0.8s linear infinite;
+}
+
+@keyframes btnSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}

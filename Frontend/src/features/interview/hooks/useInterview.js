@@ -13,7 +13,13 @@ export const useInterview = () => {
         throw new Error("useInterview must be used within an InterviewProvider")
     }
 
-    const { loading, setLoading, report, setReport, reports, setReports } = context
+    const {
+        loading, setLoading,
+        downloadingResume, setDownloadingResume,
+        downloadError, setDownloadError,
+        report, setReport,
+        reports, setReports
+    } = context
 
     const generateReport = async ({ jobDescription, selfDescription, resumeFile }) => {
         setLoading(true)
@@ -75,21 +81,29 @@ export const useInterview = () => {
     }
 
     const getResumePdf = async (interviewReportId) => {
-        setLoading(true)
-        let response = null
+        setDownloadingResume(true)
+        setDownloadError("")
         try {
-            response = await generateResumePdf({ interviewReportId })
-            const url = window.URL.createObjectURL(new Blob([ response ], { type: "application/pdf" }))
+            const blobData = await generateResumePdf({ interviewReportId })
+            const blob = new Blob([ blobData ], { type: "application/pdf" })
+            const url = window.URL.createObjectURL(blob)
             const link = document.createElement("a")
             link.href = url
             link.setAttribute("download", `resume_${interviewReportId}.pdf`)
             document.body.appendChild(link)
             link.click()
-        }
-        catch (error) {
-            console.log(error)
+            setTimeout(() => {
+                link.remove()
+                window.URL.revokeObjectURL(url)
+            }, 100)
+            return true
+        } catch (error) {
+            console.error("Resume download error:", error)
+            const message = error?.message || error?.response?.data?.message || "Failed to download resume. Please try again."
+            setDownloadError(message)
+            throw error
         } finally {
-            setLoading(false)
+            setDownloadingResume(false)
         }
     }
 
@@ -101,6 +115,18 @@ export const useInterview = () => {
         }
     }, [ interviewId ])
 
-    return { loading, report, reports, generateReport, getReportById, getReports, getResumePdf, submitQuestionFeedback }
+    return {
+        loading,
+        downloadingResume,
+        downloadError,
+        setDownloadError,
+        report,
+        reports,
+        generateReport,
+        getReportById,
+        getReports,
+        getResumePdf,
+        submitQuestionFeedback
+    }
 
 }

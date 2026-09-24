@@ -19,4 +19,13 @@ const interviewRouter = require("./routes/interview.route")
 app.use("/api/auth", authRouter)
 app.use("/api/interview", interviewRouter)
 
+/* Global error handler */
+app.use((err, req, res, next) => {
+  console.error("Unhandled Error:", err);
+  const status = err.status || err.statusCode || (err.name === "MulterError" ? 400 : 500);
+  res.status(status).json({
+    message: err.message || "An unexpected error occurred."
+  });
+});
+
 module.exports = app;

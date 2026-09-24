@@ -2,8 +2,7 @@ require("dotenv").config()
 const fs = require("fs")
 const path = require("path")
 const { GoogleGenAI } = require("@google/genai")
-const { zodToJsonSchema } = require("zod-to-json-schema")
-const { interviewReportSchema } = require("../src/services/ai.service")
+const { interviewReportSchema, toGeminiSchema } = require("../src/services/ai.service")
 
 const FIXTURES_DIR = path.join(__dirname, "fixtures")
 const OUTPUT_FILE = path.join(__dirname, "benchmark-results.json")
@@ -50,11 +49,11 @@ const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_GENAI_API_KEY })
 const providers = {
     google: async (jobDescription, resume) => {
         const response = await ai.models.generateContent({
-            model: "gemini-3-flash-preview",
+            model: "gemini-3.6-flash",
             contents: buildPrompt(jobDescription, resume),
             config: {
                 responseMimeType: "application/json",
-                responseSchema: zodToJsonSchema(interviewReportSchema),
+                responseSchema: toGeminiSchema(interviewReportSchema),
             }
         })
         return JSON.parse(response.text)

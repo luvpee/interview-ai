@@ -1,1 +1,31 @@
-{"name":"interview-master","version":"1.0.0","description":"","main":"index.js","scripts":{"tests":"echo \"Error: no test specified\" && exit 1","dev":"npx nodemon server.js","benchmark":"node scripts/benchmark-models.js"},"keywords":[],"author":"","license":"ISC","dependencies":{"@google/genai":"^2.19.0","bcryptjs":"^3.0.3","cookie-parser":"^1.4.7","cors":"^2.8.6","dotenv":"^17.4.2","express":"^5.2.1","jsonwebtoken":"^9.0.3","mongoose":"^9.9.2","multer":"^2.2.0","nodemon":"^3.1.14","pdf-parse":"^2.4.5","puppeteer":"^25.9.0","zod":"^4.4.3","zod-to-json-schema":"^3.25.2"}}
+{
+  "name": "interview-master",
+  "version": "1.0.0",
+  "description": "AI-powered interview preparation platform",
+  "main": "server.js",
+  "scripts": {
+    "dev": "npx nodemon server.js",
+    "test:security": "node scripts/test-cross-user-access.js",
+    "benchmark": "node scripts/benchmark-models.js",
+    "benchmark:eval": "node scripts/run-eval-benchmarks.js",
+    "benchmark:all": "node scripts/run-all-benchmarks.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@google/genai": "^2.19.0",
+    "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.9.2",
+    "multer": "^2.2.0",
+    "nodemon": "^3.1.14",
+    "pdf-parse": "^2.4.5",
+    "puppeteer": "^25.9.0",
+    "zod": "^4.4.3"
+  }
+}

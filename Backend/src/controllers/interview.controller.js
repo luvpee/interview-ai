@@ -3,9 +3,6 @@ const { generateInterviewReport, generateResumePdf } = require("../services/ai.s
 const interviewReportModel = require("../models/interviewReport.model")
 const AIGenerationError = require("../errors/AIGenerationError")
 
-
-
-
 /**
  * @description Controller to generate interview report based on user self description, resume and job description.
  */
@@ -95,7 +92,7 @@ async function generateResumePdfController(req, res) {
     try {
         const { interviewReportId } = req.params
 
-        const interviewReport = await interviewReportModel.findById(interviewReportId)
+        const interviewReport = await interviewReportModel.findOne({ _id: interviewReportId, user: req.user.id })
 
         if (!interviewReport) {
             return res.status(404).json({
